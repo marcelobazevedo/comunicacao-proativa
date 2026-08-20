@@ -24,7 +24,9 @@ class Segurado:
     latitude: float
     longitude: float
     apolices: tuple[TipoApolice, ...]
-    canal_preferido: str = "push"
+    canal_preferido: str = "whatsapp"
+    email: str = ""
+    telefone: str = ""
 
 
 @dataclass(frozen=True)

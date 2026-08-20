@@ -10,6 +10,12 @@ class AgenteNotificacao:
     def executar(self, estado: EstadoFluxo) -> dict:
         with self.fabrica_sessoes.begin() as sessao:
             for item in estado["mensagens"]:
+                canal = item.destinatario.segurado.canal_preferido or self.canal
+                destino = (
+                    item.destinatario.segurado.email
+                    if canal == "email"
+                    else item.destinatario.segurado.telefone
+                )
                 sessao.add(
                     NotificacaoModelo(
                         execucao_id=estado["identificador_execucao"],
@@ -19,7 +25,8 @@ class AgenteNotificacao:
                         mensagem=item.conteudo,
                         provedor_modelo=item.provedor_modelo,
                         status="simulada",
-                        canal=item.destinatario.segurado.canal_preferido or self.canal,
+                        canal=canal,
+                        destino=destino,
                         criada_em=agora_utc(),
                     )
                 )

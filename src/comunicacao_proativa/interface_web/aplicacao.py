@@ -7,6 +7,11 @@ from sqlalchemy.orm import selectinload
 
 from comunicacao_proativa.aplicacao.executor import executar_fluxo
 from comunicacao_proativa.configuracao import obter_configuracao
+from comunicacao_proativa.dominio.contatos import (
+    formatar_telefone,
+    normalizar_email,
+    normalizar_telefone,
+)
 from comunicacao_proativa.infraestrutura.banco_dados import (
     ApoliceModelo,
     AuditoriaAgenteModelo,
@@ -67,6 +72,7 @@ def criar_aplicacao(configuracao=None) -> Flask:
 
     aplicacao.add_template_filter(normalizar_mensagem, "normalizar_mensagem")
     aplicacao.add_template_filter(formatar_data_hora_brasilia, "data_hora_brasilia")
+    aplicacao.add_template_filter(formatar_telefone, "telefone")
 
     @aplicacao.get("/")
     def painel():
@@ -162,14 +168,26 @@ def criar_aplicacao(configuracao=None) -> Flask:
             )
 
         nome = request.form.get("nome", "").strip()
+        email_informado = request.form.get("email", "")
+        telefone_informado = request.form.get("telefone", "")
         cidade = request.form.get("cidade", "").strip()
         estado = request.form.get("estado", "").strip().upper()
         tipos_apolice = request.form.getlist("apolices")
-        canal_preferido = request.form.get("canal_preferido", "push")
+        canal_preferido = request.form.get("canal_preferido", "whatsapp")
         tipos_validos = {"residencial", "automovel"}
-        canais_validos = {"push", "sms", "email"}
+        canais_validos = {"whatsapp", "sms", "email"}
+        erro_contato = None
+        try:
+            email = normalizar_email(email_informado)
+            telefone = normalizar_telefone(telefone_informado)
+        except ValueError as erro:
+            email = email_informado
+            telefone = telefone_informado
+            erro_contato = str(erro)
         if len(nome) < 3:
             flash("Informe um nome com pelo menos três caracteres.", "erro")
+        elif erro_contato:
+            flash(erro_contato, "erro")
         elif len(cidade) < 2:
             flash("Informe o nome da cidade.", "erro")
         elif estado not in ESTADOS:
@@ -185,6 +203,8 @@ def criar_aplicacao(configuracao=None) -> Flask:
                     sessao.add(
                         SeguradoModelo(
                             nome=nome,
+                            email=email,
+                            telefone=telefone,
                             cidade=localizacao.cidade,
                             estado=localizacao.estado,
                             pais=localizacao.pais,
@@ -227,6 +247,8 @@ def criar_aplicacao(configuracao=None) -> Flask:
                 return "Segurado não encontrado", 404
             dados_atuais = {
                 "nome": segurado.nome,
+                "email": segurado.email,
+                "telefone": formatar_telefone(segurado.telefone),
                 "cidade": segurado.cidade,
                 "estado": segurado.estado,
                 "canal_preferido": segurado.canal_preferido,
@@ -245,14 +267,26 @@ def criar_aplicacao(configuracao=None) -> Flask:
             )
 
         nome = request.form.get("nome", "").strip()
+        email_informado = request.form.get("email", "")
+        telefone_informado = request.form.get("telefone", "")
         cidade = request.form.get("cidade", "").strip()
         estado = request.form.get("estado", "").strip().upper()
         tipos_apolice = request.form.getlist("apolices")
-        canal_preferido = request.form.get("canal_preferido", "push")
+        canal_preferido = request.form.get("canal_preferido", "whatsapp")
         tipos_validos = {"residencial", "automovel"}
-        canais_validos = {"push", "sms", "email"}
+        canais_validos = {"whatsapp", "sms", "email"}
+        erro_contato = None
+        try:
+            email = normalizar_email(email_informado)
+            telefone = normalizar_telefone(telefone_informado)
+        except ValueError as erro:
+            email = email_informado
+            telefone = telefone_informado
+            erro_contato = str(erro)
         if len(nome) < 3:
             flash("Informe um nome com pelo menos três caracteres.", "erro")
+        elif erro_contato:
+            flash(erro_contato, "erro")
         elif len(cidade) < 2:
             flash("Informe o nome da cidade.", "erro")
         elif estado not in ESTADOS:
@@ -281,6 +315,8 @@ def criar_aplicacao(configuracao=None) -> Flask:
                     if segurado is None:
                         return "Segurado não encontrado", 404
                     segurado.nome = nome
+                    segurado.email = email
+                    segurado.telefone = telefone
                     segurado.canal_preferido = canal_preferido
                     if localizacao is not None:
                         segurado.cidade = localizacao.cidade

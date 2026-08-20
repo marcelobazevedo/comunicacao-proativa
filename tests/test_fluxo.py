@@ -37,7 +37,7 @@ def test_langgraph_persiste_auditoria_decisoes_e_notificacoes(fabrica_sessoes, c
         GeradorFalso(),
         fabrica_sessoes,
         configuracao_teste.obter_parametros_alerta(),
-        "push",
+        "whatsapp",
     )
     resultado = grafo.invoke(
         {
@@ -57,4 +57,6 @@ def test_langgraph_persiste_auditoria_decisoes_e_notificacoes(fabrica_sessoes, c
         assert sessao.scalar(select(func.count()).select_from(AuditoriaAgenteModelo)) == 7
         assert sessao.scalar(select(func.count()).select_from(DecisaoModelo)) > 0
         assert sessao.scalar(select(func.count()).select_from(NotificacaoModelo)) > 0
-        assert sessao.scalar(select(NotificacaoModelo.canal).limit(1)) == "push"
+        notificacao = sessao.scalar(select(NotificacaoModelo).limit(1))
+        assert notificacao.canal == "whatsapp"
+        assert notificacao.destino.startswith("55")

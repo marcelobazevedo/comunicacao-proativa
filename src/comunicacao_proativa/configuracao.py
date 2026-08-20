@@ -24,7 +24,7 @@ class Configuracao(BaseSettings):
     PORTA: int = Field(default=5001, ge=1, le=65535)
     MONITORAMENTO_ATIVO: bool = True
     INTERVALO_MONITORAMENTO_MINUTOS: int = Field(default=30, ge=1)
-    CANAL_NOTIFICACAO: str = Field(default="push", pattern="^(push|sms|email)$")
+    CANAL_NOTIFICACAO: str = Field(default="whatsapp", pattern="^(whatsapp|sms|email)$")
     CSRF_ATIVO: bool = True
     ALERTA_CHUVA_INTENSA_MM: float = Field(default=50, gt=0)
     ALERTA_CHUVA_COM_PROBABILIDADE_MM: float = Field(default=30, gt=0)

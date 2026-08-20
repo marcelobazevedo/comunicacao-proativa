@@ -32,7 +32,9 @@ class SeguradoModelo(Base):
     ativo: Mapped[bool] = mapped_column(Boolean, default=True)
     latitude: Mapped[float] = mapped_column(Float)
     longitude: Mapped[float] = mapped_column(Float)
-    canal_preferido: Mapped[str] = mapped_column(String(20), default="push")
+    email: Mapped[str] = mapped_column(String(254))
+    telefone: Mapped[str] = mapped_column(String(13))
+    canal_preferido: Mapped[str] = mapped_column(String(20), default="whatsapp")
     apolices: Mapped[list["ApoliceModelo"]] = relationship(cascade="all, delete-orphan")
 
 
@@ -74,7 +76,8 @@ class NotificacaoModelo(Base):
     mensagem: Mapped[str] = mapped_column(Text)
     provedor_modelo: Mapped[str] = mapped_column(String(80))
     status: Mapped[str] = mapped_column(String(30), default="simulada")
-    canal: Mapped[str] = mapped_column(String(20), default="push")
+    canal: Mapped[str] = mapped_column(String(20), default="whatsapp")
+    destino: Mapped[str] = mapped_column(String(254))
     criada_em: Mapped[datetime] = mapped_column(DateTime(timezone=True))
 
 
@@ -155,6 +158,8 @@ def criar_dados_iniciais(fabrica_sessoes) -> None:
             [
                 SeguradoModelo(
                     nome="Ana Souza",
+                    email="ana.souza@exemplo.com",
+                    telefone="5511999990001",
                     cidade="São Paulo",
                     estado="SP",
                     pais="BR",
@@ -164,6 +169,8 @@ def criar_dados_iniciais(fabrica_sessoes) -> None:
                 ),
                 SeguradoModelo(
                     nome="Bruno Lima",
+                    email="bruno.lima@exemplo.com",
+                    telefone="5513999990002",
                     cidade="Santos",
                     estado="SP",
                     pais="BR",
@@ -173,6 +180,8 @@ def criar_dados_iniciais(fabrica_sessoes) -> None:
                 ),
                 SeguradoModelo(
                     nome="Carla Alves",
+                    email="carla.alves@exemplo.com",
+                    telefone="5519999990003",
                     cidade="Campinas",
                     estado="SP",
                     pais="BR",
@@ -203,6 +212,8 @@ def listar_segurados(fabrica_sessoes) -> list[Segurado]:
                 m.longitude,
                 tuple(TipoApolice(a.tipo) for a in m.apolices),
                 m.canal_preferido,
+                m.email,
+                m.telefone,
             )
             for m in modelos
         ]

@@ -136,11 +136,13 @@ O protótipo não contata destinatários externos. Quando existe risco e um segu
 uma notificação auditável com mensagem, canal, status e horário. O canal exibido é configurável:
 
 ```dotenv
-CANAL_NOTIFICACAO=push
+CANAL_NOTIFICACAO=whatsapp
 ```
 
-Os valores aceitos são `push`, `sms` e `email`; todos permanecem simulados.
-O canal padrão vem do `.env`, mas pode ser personalizado individualmente no cadastro do segurado.
+Os valores aceitos são `whatsapp`, `sms` e `email`; todos permanecem simulados. A notificação
+registra o e-mail ou o telefone de destino. O telefone é normalizado com o código `55`, deixando
+o cadastro preparado para uma integração futura com a Evolution API, que não faz parte desta
+versão. O canal padrão vem do `.env`, mas pode ser personalizado no cadastro do segurado.
 
 ## Segurança e saída da LLM
 
@@ -199,19 +201,20 @@ docker compose exec aplicacao uv run ruff check .
 docker compose exec aplicacao uv run pyright
 ```
 
-Resultado de referência: oito testes aprovados, Ruff e Pyright sem erros.
+Resultado de referência: quinze testes aprovados, Ruff e Pyright sem erros.
 
 ## Regras do MVP
 
 ### Cadastro de segurados
 
-Use **Novo segurado** na navegação. O formulário solicita nome, cidade, UF e apólices. A
+Use **Novo segurado** na navegação. O formulário solicita nome, e-mail, telefone com DDD, cidade,
+UF, apólices e canal preferido. A
 aplicação consulta a API de geocodificação do Open-Meteo, escolhe a cidade dentro da UF informada
 e armazena latitude e longitude automaticamente. O novo segurado participa das próximas
 execuções com previsão real.
 
-O botão **Editar segurado** abre o formulário preenchido para alterar nome, cidade, UF, apólices
-e canal preferido.
+O botão **Editar segurado** abre o formulário preenchido para alterar nome, contatos, cidade, UF,
+apólices e canal preferido.
 Quando cidade ou UF mudam, a geocodificação atualiza automaticamente as coordenadas. O botão
 **Excluir segurado** solicita confirmação e realiza exclusão lógica: o segurado deixa de participar
 de novas análises, mas o histórico de eventos e notificações é preservado.
@@ -232,8 +235,7 @@ fictícios. Nenhuma mensagem é realmente enviada e nenhuma comunicação promet
 
 ## Documentação
 
-O planejamento detalhado está em [`docs/plano-elaboracao.md`](docs/plano-elaboracao.md). A fonte
-meteorológica segue a [documentação do Open-Meteo](https://open-meteo.com/en/docs); os modelos
+A fonte meteorológica segue a [documentação do Open-Meteo](https://open-meteo.com/en/docs); os modelos
 seguem os catálogos oficiais do [Ollama](https://ollama.com/library/ministral-3/tags) e do
 [Groq](https://console.groq.com/docs/models).
 

@@ -34,7 +34,7 @@ def test_ollama_usa_schema_e_resposta_estruturada(monkeypatch):
         "httpx.post", lambda *args, **kwargs: chamadas.append(kwargs) or RespostaFalsa()
     )
     segurado = Segurado(
-        1, "Ana", "São Paulo", "SP", "BR", -23.5, -46.6, (TipoApolice.AUTOMOVEL,), "push"
+        1, "Ana", "São Paulo", "SP", "BR", -23.5, -46.6, (TipoApolice.AUTOMOVEL,), "whatsapp"
     )
     evento = EventoClimatico(TipoEvento.GRANIZO, "São Paulo", date.today(), "alta", "WMO 96")
     gerador = GeradorDeMensagem(Configuracao(LOCAL=True, _env_file=None))

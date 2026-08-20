@@ -11,6 +11,14 @@
     <input name="nome" required minlength="3" maxlength="120" value="{{ request.form.get('nome', dados.nome if dados else '') }}">
   </label>
   <div class="campos-linha">
+    <label>E-mail
+      <input type="email" name="email" required maxlength="254" placeholder="nome@exemplo.com" value="{{ request.form.get('email', dados.email if dados else '') }}">
+    </label>
+    <label>Telefone com DDD
+      <input type="tel" name="telefone" required maxlength="20" inputmode="tel" placeholder="(11) 99999-9999" value="{{ request.form.get('telefone', dados.telefone if dados else '') }}">
+    </label>
+  </div>
+  <div class="campos-linha">
     <label>Cidade
       <input name="cidade" required minlength="2" maxlength="120" placeholder="Ex.: Curitiba" value="{{ request.form.get('cidade', dados.cidade if dados else '') }}">
     </label>
@@ -27,14 +35,14 @@
     <label class="opcao"><input type="checkbox" name="apolices" value="automovel" {% if 'automovel' in apolices_selecionadas %}checked{% endif %}> Seguro automóvel</label>
   </fieldset>
   <label>Canal preferido
-    {% set canal_selecionado = request.form.get('canal_preferido', dados.canal_preferido if dados else 'push') %}
+    {% set canal_selecionado = request.form.get('canal_preferido', dados.canal_preferido if dados else 'whatsapp') %}
     <select name="canal_preferido" required>
-      <option value="push" {% if canal_selecionado == 'push' %}selected{% endif %}>Push</option>
+      <option value="whatsapp" {% if canal_selecionado == 'whatsapp' %}selected{% endif %}>WhatsApp</option>
       <option value="sms" {% if canal_selecionado == 'sms' %}selected{% endif %}>SMS</option>
       <option value="email" {% if canal_selecionado == 'email' %}selected{% endif %}>E-mail</option>
     </select>
   </label>
-  <p class="nota">Nenhuma latitude ou longitude precisa ser informada.</p>
+  <p class="nota">O telefone é armazenado com código do Brasil para uma futura integração com WhatsApp. Nenhuma mensagem é enviada nesta versão.</p>
   <button type="submit">{{ texto_botao }}</button>
   <a class="botao-secundario" href="{{ url_for('segurados') }}">Cancelar</a>
 </form>
