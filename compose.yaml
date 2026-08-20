@@ -53,7 +53,97 @@ services:
         condition: service_healthy
     restart: unless-stopped
 
+  evolution-postgres:
+    image: postgres:16-alpine
+    profiles: ["whatsapp"]
+    environment:
+      POSTGRES_USER: ${EVOLUTION_POSTGRES_USUARIO}
+      POSTGRES_PASSWORD: ${EVOLUTION_POSTGRES_SENHA}
+      POSTGRES_DB: ${EVOLUTION_POSTGRES_BANCO}
+    volumes:
+      - dados_evolution_postgres:/var/lib/postgresql/data
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - pg_isready -U "$${POSTGRES_USER}" -d "$${POSTGRES_DB}"
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  evolution-redis:
+    image: redis:7-alpine
+    profiles: ["whatsapp"]
+    command: ["redis-server", "--appendonly", "yes", "--requirepass", "${EVOLUTION_REDIS_SENHA}"]
+    volumes:
+      - dados_evolution_redis:/data
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli -a '${EVOLUTION_REDIS_SENHA}' ping | grep PONG"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  evolution-api:
+    image: evoapicloud/evolution-api:v2.3.7
+    profiles: ["whatsapp"]
+    environment:
+      SERVER_NAME: evolution
+      SERVER_TYPE: http
+      SERVER_PORT: 8080
+      SERVER_URL: http://localhost:8080
+      # A porta está limitada ao loopback; a API 2.3.7 exige * também para clientes sem Origin.
+      CORS_ORIGIN: "*"
+      CORS_METHODS: GET,POST,PUT,DELETE
+      CORS_CREDENTIALS: "true"
+      DATABASE_PROVIDER: postgresql
+      DATABASE_CONNECTION_URI: >-
+        postgresql://${EVOLUTION_POSTGRES_USUARIO}:${EVOLUTION_POSTGRES_SENHA}@evolution-postgres:5432/${EVOLUTION_POSTGRES_BANCO}?schema=public
+      DATABASE_CONNECTION_CLIENT_NAME: protege_antes
+      DATABASE_SAVE_DATA_INSTANCE: "true"
+      DATABASE_SAVE_DATA_NEW_MESSAGE: "true"
+      DATABASE_SAVE_MESSAGE_UPDATE: "true"
+      DATABASE_SAVE_DATA_CONTACTS: "true"
+      DATABASE_SAVE_DATA_CHATS: "true"
+      DATABASE_SAVE_DATA_HISTORIC: "true"
+      CACHE_REDIS_ENABLED: "true"
+      CACHE_REDIS_URI: redis://:${EVOLUTION_REDIS_SENHA}@evolution-redis:6379/0
+      CACHE_REDIS_PREFIX_KEY: protege-antes
+      CACHE_REDIS_SAVE_INSTANCES: "true"
+      CACHE_LOCAL_ENABLED: "false"
+      AUTHENTICATION_API_KEY: ${EVOLUTION_API_KEY}
+      AUTHENTICATION_EXPOSE_IN_FETCH_INSTANCES: "false"
+      DEL_INSTANCE: "false"
+      DEL_TEMP_INSTANCES: "false"
+      LANGUAGE: pt-BR
+      LOG_LEVEL: ERROR,WARN,INFO
+      LOG_BAILEYS: error
+      TELEMETRY_ENABLED: "false"
+    ports:
+      - "127.0.0.1:8080:8080"
+    volumes:
+      - dados_evolution_instancias:/evolution/instances
+    depends_on:
+      evolution-postgres:
+        condition: service_healthy
+      evolution-redis:
+        condition: service_healthy
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - >-
+          node -e "fetch('http://127.0.0.1:8080/')
+          .then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"
+      interval: 15s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
+    restart: unless-stopped
+
 volumes:
   ambiente_virtual:
   cache_uv:
   dados_aplicacao:
+  dados_evolution_postgres:
+  dados_evolution_redis:
+  dados_evolution_instancias:

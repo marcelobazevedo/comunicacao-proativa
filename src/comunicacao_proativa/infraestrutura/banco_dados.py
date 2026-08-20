@@ -79,6 +79,17 @@ class NotificacaoModelo(Base):
     canal: Mapped[str] = mapped_column(String(20), default="whatsapp")
     destino: Mapped[str] = mapped_column(String(254))
     criada_em: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    identificador_externo: Mapped[str | None] = mapped_column(String(160), nullable=True)
+    instancia: Mapped[str | None] = mapped_column(String(120), nullable=True)
+    tentativas: Mapped[int] = mapped_column(Integer, default=0)
+    ultima_tentativa_em: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    confirmada_em: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    codigo_http: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    resposta_resumo: Mapped[str | None] = mapped_column(Text, nullable=True)
+    erro_envio: Mapped[str | None] = mapped_column(Text, nullable=True)
+    chave_idempotencia: Mapped[str] = mapped_column(String(64), unique=True, index=True)
 
 
 class MensagemModelo(Base):

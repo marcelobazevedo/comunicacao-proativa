@@ -1,7 +1,8 @@
 # Protege Antes — Comunicação Proativa com Segurados
 
 A aplicação consulta condições meteorológicas, detecta riscos por
-regras explícitas, seleciona segurados por apólice, gera mensagens com IA e simula notificações.
+regras explícitas, seleciona segurados por apólice, gera mensagens com IA e entrega notificações
+por WhatsApp quando a Evolution API está habilitada. SMS e e-mail permanecem simulados.
 
 ## Arquitetura
 
@@ -9,10 +10,10 @@ O fluxo é um grafo LangGraph com agentes especializados:
 
 ```text
 coleta → verificação de mudança
-              ├─ sem mudança → fim
-              └─ processamento → análise de risco → decisão
+              ├─ automática sem mudança → fim
+              └─ manual ou com mudança → processamento → análise de risco → decisão
                                                            ├─ sem destinatários → fim
-                                                           └─ comunicação → notificação simulada → fim
+                                                           └─ comunicação → notificação → fim
 ```
 
 - Open-Meteo para previsão real e geocodificação de cidades;
@@ -20,6 +21,7 @@ coleta → verificação de mudança
 - Groq + `openai/gpt-oss-20b` no modo remoto gratuito;
 - SQLite acessado com SQLAlchemy e versionado com Alembic;
 - Flask/Jinja para execução e auditoria visual;
+- Evolution API `v2.3.7`, PostgreSQL e Redis para WhatsApp;
 - uv para dependências e Docker Compose para o ambiente de desenvolvimento.
 
 ## Desenvolvimento com Docker e Ollama local
@@ -50,6 +52,9 @@ Volumes utilizados:
 - `ambiente_virtual`: dependências Python do contêiner;
 - `cache_uv`: downloads e cache do uv;
 - `dados_aplicacao`: arquivo SQLite persistente.
+- `dados_evolution_postgres`: banco da Evolution API;
+- `dados_evolution_redis`: cache persistente da Evolution API;
+- `dados_evolution_instancias`: sessão pareada do WhatsApp.
 
 No Linux, o contêiner usa a rede do host e acessa o Ollama em `127.0.0.1:11434`; ele não baixa nem
 mantém uma segunda cópia do `ministral-3:14b`. Um rebuild só será necessário se o
@@ -103,7 +108,8 @@ O serviço `monitor` consulta a previsão ao iniciar e repete a verificação no
 no `.env`. Antes da análise, o sistema calcula um resumo SHA-256 normalizado da previsão. Quando
 o conteúdo é igual ao da última consulta, a execução termina sem aplicar regras, chamar a LLM ou
 criar notificações. O histórico identifica essas execuções com origem **Automática**. O botão
-**Verificar agora** usa exatamente o mesmo fluxo, mas registra a origem **Manual**.
+**Verificar agora** registra a origem **Manual** e sempre percorre a pipeline completa, mesmo que
+a previsão não tenha mudado.
 
 O monitor executa em segundo plano em um contêiner separado. Enquanto o painel estiver aberto,
 ele é atualizado a cada 15 segundos para apresentar mudanças no histórico. Na execução manual,
@@ -130,19 +136,59 @@ INTERVALO_MONITORAMENTO_MINUTOS=30
 O intervalo pode ser alterado para `10`, por exemplo. Depois da alteração, recrie o serviço sem
 rebuild: `docker compose up -d --force-recreate monitor`.
 
-## Notificações simuladas
+## WhatsApp com Evolution API
 
-O protótipo não contata destinatários externos. Quando existe risco e um segurado elegível, grava
-uma notificação auditável com mensagem, canal, status e horário. O canal exibido é configurável:
+Quando existe risco e um segurado elegível, a aplicação registra uma notificação auditável com
+mensagem, canal, destino, tentativas, status e horário. WhatsApp utiliza envio real quando
+`ENVIO_WHATSAPP_ATIVO=True`; SMS e e-mail continuam ilustrativos e simulados.
+
+O ambiente final foi validado com a instância `protege-antes` no estado `open`. A pipeline recebeu
+HTTP 201 da Evolution API, confirmou a entrega em uma tentativa e persistiu o identificador
+externo. Nenhum telefone, conteúdo enviado ou credencial é incluído nesta documentação.
 
 ```dotenv
 CANAL_NOTIFICACAO=whatsapp
 ```
 
-Os valores aceitos são `whatsapp`, `sms` e `email`; todos permanecem simulados. A notificação
-registra o e-mail ou o telefone de destino. O telefone é normalizado com o código `55`, deixando
-o cadastro preparado para uma integração futura com a Evolution API, que não faz parte desta
-versão. O canal padrão vem do `.env`, mas pode ser personalizado no cadastro do segurado.
+Os valores aceitos são `whatsapp`, `sms` e `email`. O telefone é normalizado com o código `55`.
+Somente segurados ativos com canal principal WhatsApp são enviados à Evolution API; não há
+fallback automático para outro canal.
+
+A infraestrutura usa a imagem fixa `evoapicloud/evolution-api:v2.3.7`, PostgreSQL 16, Redis 7 e
+volumes persistentes. Preencha no `.env` as senhas, chave e instância e inicie o perfil:
+
+```bash
+docker compose --profile whatsapp up -d evolution-api
+```
+
+Abra [http://localhost:8080/manager](http://localhost:8080/manager), informe a URL
+`http://localhost:8080` e a chave presente em `EVOLUTION_API_KEY`, crie ou abra a instância
+indicada por `EVOLUTION_API_INSTANCIA` e escaneie o QR Code em **WhatsApp → Dispositivos
+conectados → Conectar dispositivo**.
+
+Após o estado da instância ficar `open`, valide sem enviar:
+
+```bash
+docker compose exec aplicacao uv run comunicacao-proativa validar-evolution
+```
+
+Para um envio real explícito:
+
+```bash
+docker compose exec aplicacao uv run comunicacao-proativa testar-whatsapp \
+  --numero "(11) 99999-9999" \
+  --mensagem "Teste de integração do Protege Antes."
+```
+
+Em uma instalação nova, por fim altere `ENVIO_WHATSAPP_ATIVO=True` e recrie aplicação e monitor
+para que a pipeline passe a enviar automaticamente:
+
+```bash
+docker compose up -d --force-recreate aplicacao monitor
+```
+
+A chave de idempotência impede duplicidades por execução, segurado, evento e mensagem. Falhas
+temporárias recebem retentativas; códigos permanentes são registrados sem repetição automática.
 
 ## Segurança e saída da LLM
 
@@ -201,7 +247,7 @@ docker compose exec aplicacao uv run ruff check .
 docker compose exec aplicacao uv run pyright
 ```
 
-Resultado de referência: quinze testes aprovados, Ruff e Pyright sem erros.
+Resultado de referência: dezenove testes aprovados, Ruff e Pyright sem erros.
 
 ## Regras do MVP
 
@@ -230,8 +276,8 @@ apólices são preservados. A operação é bloqueada enquanto houver uma verifi
 | Granizo       | Código WMO 96 ou 99                          | Automóvel               |
 
 Os valores mostrados são os padrões do `.env` e podem ser ajustados sem alterar o código. São
-premissas didáticas, não recomendações operacionais. Dados de segurados são
-fictícios. Nenhuma mensagem é realmente enviada e nenhuma comunicação promete cobertura.
+premissas didáticas, não recomendações operacionais. Os dados iniciais de segurados são fictícios.
+WhatsApp pode realizar envio real quando habilitado; nenhuma comunicação promete cobertura.
 
 ## Documentação
 
@@ -239,8 +285,7 @@ A fonte meteorológica segue a [documentação do Open-Meteo](https://open-meteo
 seguem os catálogos oficiais do [Ollama](https://ollama.com/library/ministral-3/tags) e do
 [Groq](https://console.groq.com/docs/models).
 
-O relatório final está disponível em [`docs/relatorio-tecnico.pdf`](docs/relatorio-tecnico.pdf),
-com sua fonte editável em [`docs/relatorio-tecnico.html`](docs/relatorio-tecnico.html).
+O relatório final está disponível em [`docs/relatorio-tecnico.pdf`](docs/relatorio-tecnico.pdf).
 
 ## Licença
 

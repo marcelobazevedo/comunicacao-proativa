@@ -1,8 +1,9 @@
 """Configuração central da aplicação, carregada do arquivo .env."""
 
 from functools import lru_cache
+from typing import Self
 
-from pydantic import Field
+from pydantic import Field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from comunicacao_proativa.dominio.regras import ParametrosAlerta
@@ -25,6 +26,12 @@ class Configuracao(BaseSettings):
     MONITORAMENTO_ATIVO: bool = True
     INTERVALO_MONITORAMENTO_MINUTOS: int = Field(default=30, ge=1)
     CANAL_NOTIFICACAO: str = Field(default="whatsapp", pattern="^(whatsapp|sms|email)$")
+    ENVIO_WHATSAPP_ATIVO: bool = False
+    EVOLUTION_API_URL: str = "http://127.0.0.1:8080"
+    EVOLUTION_API_KEY: str = ""
+    EVOLUTION_API_INSTANCIA: str = ""
+    EVOLUTION_API_TEMPO_LIMITE_SEGUNDOS: float = Field(default=15, gt=0)
+    EVOLUTION_API_MAXIMO_TENTATIVAS: int = Field(default=3, ge=1, le=5)
     CSRF_ATIVO: bool = True
     ALERTA_CHUVA_INTENSA_MM: float = Field(default=50, gt=0)
     ALERTA_CHUVA_COM_PROBABILIDADE_MM: float = Field(default=30, gt=0)
@@ -32,6 +39,17 @@ class Configuracao(BaseSettings):
     ALERTA_VENTO_FORTE_KMH: float = Field(default=75, gt=0)
     ALERTA_VENTO_SEVERIDADE_ALTA_KMH: float = Field(default=90, gt=0)
     ALERTA_CODIGOS_WMO_GRANIZO: list[int] = Field(default_factory=lambda: [96, 99])
+
+    @model_validator(mode="after")
+    def validar_evolution_api(self) -> Self:
+        if self.ENVIO_WHATSAPP_ATIVO and not all(
+            [self.EVOLUTION_API_URL, self.EVOLUTION_API_KEY, self.EVOLUTION_API_INSTANCIA]
+        ):
+            raise ValueError(
+                "O envio por WhatsApp exige EVOLUTION_API_URL, EVOLUTION_API_KEY e "
+                "EVOLUTION_API_INSTANCIA."
+            )
+        return self
 
     def obter_parametros_alerta(self) -> ParametrosAlerta:
         if self.ALERTA_CHUVA_COM_PROBABILIDADE_MM > self.ALERTA_CHUVA_INTENSA_MM:

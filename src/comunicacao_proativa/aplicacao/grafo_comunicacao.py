@@ -17,6 +17,8 @@ def _decidir_comunicacao(estado: EstadoFluxo) -> str:
 
 
 def _decidir_processamento(estado: EstadoFluxo) -> str:
+    if estado["origem"] == "manual":
+        return "processar"
     return "processar" if estado["houve_mudanca"] else "encerrar"
 
 
@@ -26,6 +28,7 @@ def criar_grafo(
     fabrica_sessoes,
     parametros_alerta,
     canal_notificacao,
+    provedor_whatsapp=None,
 ):
     construtor = StateGraph(EstadoFluxo)
     nos = {
@@ -35,7 +38,9 @@ def criar_grafo(
         "analisar_risco": AgenteAnaliseRisco(parametros_alerta).executar,
         "decidir": AgenteDecisao(fabrica_sessoes).executar,
         "comunicar": AgenteComunicacao(gerador_mensagem, fabrica_sessoes).executar,
-        "notificar": AgenteNotificacao(fabrica_sessoes, canal_notificacao).executar,
+        "notificar": AgenteNotificacao(
+            fabrica_sessoes, canal_notificacao, provedor_whatsapp
+        ).executar,
     }
     for nome, executar in nos.items():
         construtor.add_node(nome, NoAuditado(nome, executar, fabrica_sessoes))

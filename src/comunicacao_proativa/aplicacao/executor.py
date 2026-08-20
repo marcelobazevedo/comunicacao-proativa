@@ -5,6 +5,7 @@ from comunicacao_proativa.infraestrutura.banco_dados import (
     agora_utc,
     listar_segurados,
 )
+from comunicacao_proativa.infraestrutura.evolution_api import criar_provedor_whatsapp
 from comunicacao_proativa.infraestrutura.meteorologia import ProvedorOpenMeteo
 from comunicacao_proativa.infraestrutura.modelos_linguagem import GeradorDeMensagem
 
@@ -35,6 +36,7 @@ def executar_fluxo(configuracao: Configuracao, fabrica_sessoes, origem: str = "m
         fabrica_sessoes,
         configuracao.obter_parametros_alerta(),
         configuracao.CANAL_NOTIFICACAO,
+        criar_provedor_whatsapp(configuracao),
     )
     estado_inicial: EstadoFluxo = {
         "identificador_execucao": identificador,
