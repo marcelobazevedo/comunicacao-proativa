@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block titulo %}Comunicação Proativa{% endblock %}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='estilo.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='acoes.css') }}">
+</head>
+<body>
+  <header>
+    <a class="marca" href="{{ url_for('painel') }}">Protege <span>Antes</span></a>
+    <nav><a href="{{ url_for('painel') }}">Painel</a><a href="{{ url_for('segurados') }}">Segurados</a><a href="{{ url_for('novo_segurado') }}">Novo segurado</a></nav>
+  </header>
+  <main>
+    {% with mensagens = get_flashed_messages(with_categories=true) %}
+      {% for categoria, mensagem in mensagens %}<div class="aviso {{ categoria }}">{{ mensagem }}</div>{% endfor %}
+    {% endwith %}
+    {% block conteudo %}{% endblock %}
+  </main>
+  {% block scripts %}{% endblock %}
+  <footer>Cortex - Insurminds - I2A2</footer>
+</body>
+</html>

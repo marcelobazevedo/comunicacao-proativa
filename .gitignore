@@ -1,0 +1,25 @@
+# Python-generated files
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+
+# Virtual environments
+.venv
+
+# Configuração e dados locais
+.env
+
+# Ferramentas
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Documentos de apoio não versionados
+docs/Desafios-5.pdf
+docs/plano-elaboracao.md
+docs/relatorio-tecnico.html
+

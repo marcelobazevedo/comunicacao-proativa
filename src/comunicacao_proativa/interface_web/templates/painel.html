@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block titulo %}Painel · Protege Antes{% endblock %}
+{% block conteudo %}
+<section class="destaque">
+  <div><p class="rotulo">PREVENÇÃO ORIENTADA POR DADOS</p><h1>Antecipar riscos.<br><em>Proteger pessoas.</em></h1>
+  <p>Monitore condições meteorológicas e simule comunicações preventivas para segurados.</p></div>
+  <form method="post" action="{{ url_for('executar') }}" class="cartao executar" id="formulario-verificacao">
+    <input type="hidden" name="_csrf_token" value="{{ token_csrf }}">
+    <p class="rotulo">PREVISÃO REAL</p>
+    <h2>Verificação meteorológica</h2>
+    <p>Consulte agora o Open-Meteo. A análise completa só será executada se os dados mudarem.</p>
+    <button type="submit">Verificar agora</button>
+  </form>
+</section>
+<section class="indicadores">
+  {% for nome, valor in totais.items() %}<article><strong>{{ valor }}</strong><span>{{ nome }}</span></article>{% endfor %}
+</section>
+<section>
+  <div class="cartao"><div class="titulo-linha"><h2>Execuções recentes</h2>{% if execucoes %}<form method="post" action="{{ url_for('excluir_todas_execucoes') }}" onsubmit="return confirm('Excluir permanentemente todas as execuções, eventos, verificações e notificações? Os segurados serão preservados.');"><input type="hidden" name="_csrf_token" value="{{ token_csrf }}"><button class="botao-excluir-historico" type="submit">Excluir todas</button></form>{% endif %}</div>
+    {% if execucoes %}<table><thead><tr><th>ID</th><th>Origem</th><th>Status</th><th>Eventos</th><th>Notificações</th><th>Início</th></tr></thead><tbody>
+    {% for item, total_eventos, total_notificacoes in execucoes %}<tr><td><a href="{{ url_for('detalhe_execucao', identificador=item.identificador) }}">#{{ item.identificador }}</a></td><td>{{ item.modo|rotulo }}</td><td><span class="estado {{ item.status }}">{{ item.status|rotulo }}</span></td><td>{{ total_eventos }}</td><td>{{ total_notificacoes }}</td><td>{{ item.iniciada_em|data_hora_brasilia }}</td></tr>{% endfor %}
+    </tbody></table>{% else %}<p class="vazio">Nenhuma execução registrada.</p>{% endif %}
+  </div>
+</section>
+<div class="processamento-manual" id="processamento-manual" hidden aria-live="assertive" aria-busy="true">
+  <div class="processamento-conteudo"><span class="carregando"></span><strong>Verificando a previsão</strong><p>Coletando dados e executando a pipeline. Aguarde, esta página será atualizada ao concluir.</p></div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+  const formulario = document.getElementById("formulario-verificacao");
+  const atualizador = window.setInterval(() => {
+    if (!document.hidden) window.location.reload();
+  }, 15000);
+  formulario.addEventListener("submit", () => {
+    window.clearInterval(atualizador);
+    formulario.querySelector("button").disabled = true;
+    formulario.querySelector("button").textContent = "Verificando…";
+    document.getElementById("processamento-manual").hidden = false;
+  });
+</script>
+{% endblock %}

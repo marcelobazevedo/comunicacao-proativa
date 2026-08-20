@@ -1,0 +1,134 @@
+.acoes-segurado {
+  align-items: center;
+  display: flex;
+  gap: 10px;
+  margin-top: 22px;
+}
+
+.acoes-segurado form {
+  margin: 0;
+}
+
+.botao-editar,
+.acoes-segurado .botao-excluir {
+  background: #fff;
+  border-radius: 9px;
+  cursor: pointer;
+  display: inline-block;
+  font: inherit;
+  font-weight: 700;
+  margin: 0;
+  padding: 9px 12px;
+  text-decoration: none;
+}
+
+.botao-editar {
+  border: 1px solid var(--verde);
+  color: var(--verde);
+}
+
+.botao-editar:hover {
+  background: #edf7f2;
+}
+
+.formulario .botao-secundario {
+  border: 1px solid var(--borda);
+  border-radius: 10px;
+  color: var(--texto);
+  display: inline-block;
+  font-weight: 700;
+  margin-left: 8px;
+  padding: 11px 18px;
+  text-decoration: none;
+}
+
+@media (max-width: 480px) {
+  .acoes-segurado {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .acoes-segurado .botao-editar,
+  .acoes-segurado .botao-excluir {
+    text-align: center;
+    width: 100%;
+  }
+}
+
+.titulo-linha {
+  align-items: center;
+  display: flex;
+  justify-content: space-between;
+}
+
+.titulo-linha form {
+  margin: 0;
+}
+
+.botao-excluir-historico {
+  background: #fff;
+  border: 1px solid #d99188;
+  border-radius: 9px;
+  color: #9b3027;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 700;
+  padding: 9px 12px;
+}
+
+.botao-excluir-historico:hover {
+  background: #fff0ee;
+}
+
+.estado.concluida_com_ressalvas {
+  background: #fff2cc;
+  color: #745500;
+}
+
+.aviso.ressalva {
+  background: #fff2cc;
+  color: #745500;
+}
+
+.processamento-manual {
+  background: rgb(23 50 43 / 55%);
+  display: grid;
+  inset: 0;
+  place-items: center;
+  position: fixed;
+  z-index: 10;
+}
+
+.processamento-manual[hidden] {
+  display: none;
+}
+
+.processamento-conteudo {
+  background: #fff;
+  border-radius: 18px;
+  box-shadow: 0 20px 60px rgb(0 0 0 / 20%);
+  max-width: 430px;
+  padding: 32px;
+  text-align: center;
+  width: calc(100% - 40px);
+}
+
+.processamento-conteudo strong {
+  display: block;
+  font-size: 20px;
+  margin-top: 16px;
+}
+
+.carregando {
+  animation: girar 0.8s linear infinite;
+  border: 4px solid var(--borda);
+  border-radius: 50%;
+  border-top-color: var(--verde);
+  display: inline-block;
+  height: 42px;
+  width: 42px;
+}
+
+@keyframes girar {
+  to { transform: rotate(360deg); }
+}

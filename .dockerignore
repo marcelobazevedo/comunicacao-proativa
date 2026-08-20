@@ -1,0 +1,9 @@
+.git
+.venv
+.env
+instancia
+__pycache__
+.pytest_cache
+docs
+tests
+Desafios-5.pdf

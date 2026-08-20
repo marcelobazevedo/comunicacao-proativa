@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block titulo %}{{ titulo }}{% endblock %}
+{% block conteudo %}
+<div class="cabecalho-pagina">
+  <p class="rotulo">{{ rotulo }}</p><h1>{{ titulo }}</h1>
+  <p>Informe cidade e UF. As coordenadas serão encontradas automaticamente.</p>
+</div>
+<form method="post" class="cartao formulario">
+  <input type="hidden" name="_csrf_token" value="{{ token_csrf }}">
+  <label>Nome completo
+    <input name="nome" required minlength="3" maxlength="120" value="{{ request.form.get('nome', dados.nome if dados else '') }}">
+  </label>
+  <div class="campos-linha">
+    <label>Cidade
+      <input name="cidade" required minlength="2" maxlength="120" placeholder="Ex.: Curitiba" value="{{ request.form.get('cidade', dados.cidade if dados else '') }}">
+    </label>
+    <label>UF
+      <select name="estado" required>
+        <option value="">Selecione</option>
+        {% set estado_selecionado = request.form.get('estado', dados.estado if dados else '') %}
+        {% for sigla, nome in estados.items() %}<option value="{{ sigla }}" {% if estado_selecionado == sigla %}selected{% endif %}>{{ sigla }} — {{ nome }}</option>{% endfor %}
+      </select>
+    </label>
+  </div>
+  <fieldset><legend>Apólices</legend>
+    <label class="opcao"><input type="checkbox" name="apolices" value="residencial" {% if 'residencial' in apolices_selecionadas %}checked{% endif %}> Seguro residencial</label>
+    <label class="opcao"><input type="checkbox" name="apolices" value="automovel" {% if 'automovel' in apolices_selecionadas %}checked{% endif %}> Seguro automóvel</label>
+  </fieldset>
+  <label>Canal preferido
+    {% set canal_selecionado = request.form.get('canal_preferido', dados.canal_preferido if dados else 'push') %}
+    <select name="canal_preferido" required>
+      <option value="push" {% if canal_selecionado == 'push' %}selected{% endif %}>Push</option>
+      <option value="sms" {% if canal_selecionado == 'sms' %}selected{% endif %}>SMS</option>
+      <option value="email" {% if canal_selecionado == 'email' %}selected{% endif %}>E-mail</option>
+    </select>
+  </label>
+  <p class="nota">Nenhuma latitude ou longitude precisa ser informada.</p>
+  <button type="submit">{{ texto_botao }}</button>
+  <a class="botao-secundario" href="{{ url_for('segurados') }}">Cancelar</a>
+</form>
+{% endblock %}
