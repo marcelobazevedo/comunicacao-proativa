@@ -24,6 +24,122 @@ coleta → verificação de mudança
 - Evolution API `v2.3.7`, PostgreSQL e Redis para WhatsApp;
 - uv para dependências e Docker Compose para o ambiente de desenvolvimento.
 
+## Instalação a partir do GitHub
+
+### Pré-requisitos
+
+- Git;
+- Docker Engine com o comando `docker compose`;
+- Ollama instalado e em execução no host;
+- Linux recomendado, pois aplicação e monitor usam a rede do host para acessar o Ollama local;
+- `curl` e `openssl` para diagnóstico e geração das credenciais.
+
+O `uv` é instalado na imagem Docker. Ele só precisa existir no host se for utilizada a alternativa
+sem Docker.
+
+### 1. Baixar e configurar
+
+```bash
+git clone https://github.com/marcelobazevedo/comunicacao-proativa.git
+cd comunicacao-proativa
+cp .env.exemplo .env
+```
+
+Abra o `.env` e substitua pelo menos `CHAVE_SECRETA`, `EVOLUTION_API_KEY`,
+`EVOLUTION_POSTGRES_SENHA` e `EVOLUTION_REDIS_SENHA`. Valores seguros podem ser gerados sem
+imprimi-los em código ou adicioná-los ao Git:
+
+```bash
+openssl rand -hex 32  # use um resultado diferente em cada variável secreta
+```
+
+Mantenha inicialmente:
+
+```dotenv
+LOCAL=True
+OLLAMA_URL=http://localhost:11434
+OLLAMA_MODELO=ministral-3:14b
+ENVIO_WHATSAPP_ATIVO=False
+EVOLUTION_API_URL=http://127.0.0.1:8080
+EVOLUTION_API_INSTANCIA=protege-antes
+```
+
+O `.env` é local e ignorado pelo Git. Um clone novo não inclui bancos, volumes Docker, credenciais
+nem a sessão pareada do WhatsApp.
+
+### 2. Preparar o Ollama
+
+```bash
+ollama pull ministral-3:14b
+ollama list
+curl http://localhost:11434/api/tags
+```
+
+### 3. Iniciar todo o ambiente
+
+O perfil `whatsapp` é necessário para iniciar Evolution API, PostgreSQL e Redis juntamente com
+Flask e monitor:
+
+```bash
+docker compose --profile whatsapp up --build -d
+docker compose --profile whatsapp ps
+docker compose logs -f aplicacao
+```
+
+O contêiner da aplicação executa `uv sync`, aplica as migrações Alembic e carrega os dados iniciais
+automaticamente. Quando estiver saudável, acesse [http://localhost:5001](http://localhost:5001).
+
+### 4. Parear o WhatsApp
+
+1. Abra [http://localhost:8080/manager/login](http://localhost:8080/manager/login).
+2. Informe `http://localhost:8080` como URL da API.
+3. Use o valor de `EVOLUTION_API_KEY` como chave global.
+4. Crie ou abra a instância indicada por `EVOLUTION_API_INSTANCIA` (`protege-antes`).
+5. No celular, acesse **WhatsApp → Dispositivos conectados → Conectar dispositivo** e leia o QR
+   Code.
+6. Confirme a conexão sem enviar mensagem:
+
+```bash
+docker compose exec aplicacao uv run comunicacao-proativa validar-evolution
+```
+
+O resultado esperado contém `"estado": "open"`. Para um teste explícito e autorizado:
+
+```bash
+docker compose exec aplicacao uv run comunicacao-proativa testar-whatsapp \
+  --numero "11999999999" \
+  --mensagem "Teste de integração do Protege Antes."
+```
+
+Depois do teste, altere `ENVIO_WHATSAPP_ATIVO=True` no `.env` e recarregue a configuração:
+
+```bash
+docker compose up -d --force-recreate aplicacao monitor
+```
+
+### 5. Validar a instalação
+
+```bash
+docker compose exec aplicacao uv run alembic current
+docker compose exec aplicacao uv run ruff check .
+docker compose exec aplicacao uv run pyright
+```
+
+O estado de referência é `0010 (head)`, Ruff e Pyright sem erros. A validação funcional inclui
+Flask saudável, conexão do Ollama, geocodificação real e entrega controlada pelo WhatsApp.
+
+### Solução de problemas
+
+- Painel indisponível: execute `docker compose --profile whatsapp ps` e
+  `docker compose logs --tail=100 aplicacao`.
+- Ollama inacessível: confirme `ollama list` e `curl http://localhost:11434/api/tags` no host.
+- WhatsApp sem envio: execute `validar-evolution`; a instância precisa estar `open`, o segurado
+  precisa estar ativo, ter telefone válido e usar WhatsApp como canal principal.
+- Alteração no `.env` sem efeito: recrie o serviço correspondente com
+  `docker compose up -d --force-recreate aplicacao monitor`.
+- Reinicialização total: `docker compose --profile whatsapp down --volumes` remove
+  permanentemente SQLite, PostgreSQL, Redis, ambiente, cache e sessão pareada.
+
 ## Desenvolvimento com Docker e Ollama local
 
 O fluxo recomendado usa Flask/Python dentro do Docker e o Ollama já instalado no computador.
@@ -32,7 +148,7 @@ Verifique primeiro se o Ollama está ativo e se o modelo responde:
 ```bash
 ollama list
 curl http://localhost:11434/api/tags
-docker compose up --build
+docker compose --profile whatsapp up --build
 ```
 
 Acesse [http://localhost:5001](http://localhost:5001). A porta pode ser alterada por `PORTA` no `.env`. O primeiro
@@ -40,7 +156,7 @@ Acesse [http://localhost:5001](http://localhost:5001). A porta pode ser alterada
 Depois disso, use normalmente:
 
 ```bash
-docker compose up
+docker compose --profile whatsapp up
 ```
 
 O projeto inteiro é montado em `/aplicacao`, e o Flask roda com recarga automática. Alterações em
@@ -66,8 +182,8 @@ Comandos úteis:
 docker compose logs -f aplicacao
 docker compose logs -f monitor
 docker compose exec aplicacao uv run ruff check .
-docker compose down                         # preserva os volumes
-docker compose down --volumes               # apaga banco, ambiente e cache
+docker compose --profile whatsapp down                 # preserva os volumes
+docker compose --profile whatsapp down --volumes       # apaga todos os dados persistentes
 ```
 
 O último comando é destrutivo e deve ser usado somente quando os dados locais puderem ser
@@ -242,12 +358,11 @@ docker compose up -d --force-recreate aplicacao
 ## Qualidade
 
 ```bash
-docker compose exec aplicacao uv run pytest -q
 docker compose exec aplicacao uv run ruff check .
 docker compose exec aplicacao uv run pyright
 ```
 
-Resultado de referência: dezenove testes aprovados, Ruff e Pyright sem erros.
+Resultado de referência: Ruff e Pyright sem erros.
 
 ## Regras do MVP
 
